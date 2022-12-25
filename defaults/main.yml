@@ -1,0 +1,37 @@
+# Base directory for all files.
+plex_container_base_dir: "/srv/plex"
+
+# User and group ID to be used inside the container.
+plex_container_uid: 1000
+plex_container_gid: 1000
+
+# Container options.
+plex_container_name: "plex"
+plex_container_image: "plexinc/pms-docker:1.20.1.3252-a78fef9a9"
+plex_container_hostname: "{{ plex_container_name }}"
+
+# Container network.
+plex_container_use_host_networking: true
+plex_container_advertise_ip: "http://{{ ansible_default_ipv4.address }}:32400/"
+plex_container_networks:
+  - name: bridge
+plex_container_ports:
+  - "32400:32400/tcp"
+  - "3005:3005/tcp"
+  - "8324:8324/tcp"
+  - "32469:32469/tcp"
+  - "1900:1900/udp"
+  - "32410:32410/udp"
+  - "32412:32412/udp"
+  - "32413:32413/udp"
+  - "32414:32414/udp"
+
+# Container volumes.
+plex_container_volume_config: "{{ plex_container_base_dir }}/config"
+plex_container_volume_transcode: "{{ plex_container_base_dir }}/transcode"
+plex_container_volume_media: "{{ plex_container_base_dir }}/media"
+
+# Container environment variables.
+plex_container_timezone: "Etc/UTC" # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+plex_container_claim_token: ""
+plex_container_allowed_networks: ""

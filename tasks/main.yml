@@ -1,0 +1,75 @@
+- name: "Create expected folders"
+  file:
+    state: directory
+    path: "{{ item }}"
+    mode: "0775"
+    owner: "{{ plex_container_uid }}"
+    group: "{{ plex_container_gid }}"
+  loop:
+    - "{{ plex_container_base_dir }}"
+    - "{{ plex_container_volume_config }}"
+    - "{{ plex_container_volume_config }}/Scanners"
+    - "{{ plex_container_volume_config }}/Scanners/Series"
+    - "{{ plex_container_volume_config }}/Cache"
+    - "{{ plex_container_volume_config }}/Plug-ins"
+    - "{{ plex_container_volume_transcode }}"
+    - "{{ plex_container_volume_media }}"
+
+- name: "Download the Absolute Series Scanner (ASS)"
+  get_url:
+    url: https://raw.githubusercontent.com/ZeroQI/Absolute-Series-Scanner/master/Scanners/Series/Absolute%20Series%20Scanner.py
+    dest: "{{ plex_container_volume_config }}/Scanners/Series/Absolute Series Scanner.py"
+    mode: "0775"
+    owner: "{{ plex_container_uid }}"
+    group: "{{ plex_container_gid }}"
+  register: absolute_series_scanner
+
+- name: "Download the HAMA Bundle"
+  get_url:
+    url: https://github.com/ZeroQI/Hama.bundle/archive/refs/heads/master.zip
+    dest: "{{ plex_container_volume_config }}/Cache/hama.bunde.zip"
+    mode: "0775"
+    owner: "{{ plex_container_uid }}"
+    group: "{{ plex_container_gid }}"
+  register: hama_bundle
+
+- name: "Extract latest version of HAMA Bundle"
+  unarchive:
+    src: "{{ plex_container_volume_config }}/Cache/hama.bunde.zip"
+    dest: "{{ plex_container_volume_config }}/Plug-ins"
+    remote_src: yes
+    mode: "0775"
+    owner: "{{ plex_container_uid }}"
+    group: "{{ plex_container_gid }}"
+  when: hama_bundle.changed
+
+- name: "Replace old HAMA Bundle"
+  command: "mv '{{ plex_container_volume_config }}/Plug-ins/Hama.bundle-master' '{{ plex_container_volume_config }}/Plug-ins/Hama.bundle'"
+  when: hama_bundle.changed
+
+- name: "Start Plex container"
+  docker_container:
+    name: "{{ plex_container_name }}"
+    image: "{{ plex_container_image }}"
+    pull: yes
+    state: started
+    restart_policy: unless-stopped
+    restart: "{{ (absolute_series_scanner.changed or hama_bundle.changed) | bool }}"
+    container_default_behavior: compatibility
+    volumes:
+      - "{{ plex_container_volume_config }}:/config/Library/Application Support/Plex Media Server"
+      - "{{ plex_container_volume_transcode }}:/transcode"
+      - "{{ plex_container_volume_media }}:/media:ro"
+    networks_cli_compatible: yes
+    network_mode: "{{ plex_container_use_host_networking | bool | ternary('host', 'default') }}"
+    networks: "{{ plex_container_use_host_networking | bool | ternary(omit, plex_container_networks) }}"
+    published_ports: "{{ plex_container_use_host_networking | bool | ternary(omit, plex_container_ports) }}"
+    purge_networks: true
+    env:
+      PLEX_CLAIM: "{{ plex_container_claim_token }}"
+      TZ: "{{ plex_container_timezone }}"
+      ADVERTISE_IP: "{{ plex_container_use_host_networking | bool | ternary(omit, plex_container_advertise_ip) }}"
+      PLEX_UID: "'{{ plex_container_uid }}'"
+      PLEX_GID: "'{{ plex_container_gid }}'"
+      CHANGE_CONFIG_DIR_OWNERSHIP: 'false'
+      ALLOWED_NETWORKS: "{{ plex_container_allowed_networks }}"
