@@ -1,16 +1,22 @@
 # Base directory for all files.
 plex_container_base_dir: "/srv/plex"
 
+# Container volumes.
+plex_container_volume_config: "{{ plex_container_base_dir }}/config"
+plex_container_volume_transcode: "{{ plex_container_base_dir }}/transcode"
+plex_container_extra_mounts: # Any additional media/data mounts needed.
+  - "{{ plex_container_base_dir }}/data:/data:ro" # Default "data" mount, should be replaced with actual library.
+
 # User and group ID to be used inside the container.
 plex_container_uid: 1000
 plex_container_gid: 1000
 
 # Container options.
 plex_container_name: "plex"
-plex_container_image: "plexinc/pms-docker:1.20.1.3252-a78fef9a9"
-plex_container_hostname: "{{ plex_container_name }}"
+plex_container_image: "jonasal/plex:1.41"
 
 # Container network.
+plex_container_hostname: "" # Defaults to container ID.
 plex_container_use_host_networking: true
 plex_container_advertise_ip: "http://{{ ansible_default_ipv4.address }}:32400/"
 plex_container_networks:
@@ -26,12 +32,8 @@ plex_container_ports:
   - "32413:32413/udp"
   - "32414:32414/udp"
 
-# Container volumes.
-plex_container_volume_config: "{{ plex_container_base_dir }}/config"
-plex_container_volume_transcode: "{{ plex_container_base_dir }}/transcode"
-plex_container_volume_media: "{{ plex_container_base_dir }}/media"
-
 # Container environment variables.
 plex_container_timezone: "Etc/UTC" # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 plex_container_claim_token: ""
 plex_container_allowed_networks: ""
+plex_container_change_config_dir_ownership: true
